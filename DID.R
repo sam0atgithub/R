@@ -42,7 +42,7 @@ summary(model4)
 
 b3 - b4
 
-#method3-------------------------------------------------------------
+#method3------------------------------------------------------------
 model5 <- lm(rprice ~ nearinc + y81 + y81nrinc, KIELMC)
 summary(model5)
 coef(model5)["y81nrinc"]
