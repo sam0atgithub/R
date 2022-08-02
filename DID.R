@@ -21,18 +21,18 @@ KIELMC %>%
                .funs = list(mean = mean, obs = length))
 
 #method1----------------------------------------------------------
-model1 <- lm(rprioce ~ nearinc, KIELMC, subset = (year == 1981))
+model1 <- lm(rprice ~ nearinc, KIELMC, subset = (year == 1981))
 summary(model1)
 (b1 <- coef(model1)["nearinc"])
 
-model2 <- lm(rprioce ~ nearinc, KIELMC, subset = (year == 1978))
+model2 <- lm(rprice ~ nearinc, KIELMC, subset = (year == 1978))
 summary(model2)
 (b2 <- coef(model2)["nearinc"])
 
 b1 - b2
 
 #method2----------------------------------------------------------
-model3 <- lm(rprioce ~ y81, KIELMC, subset = (nearinc == 1))
+model3 <- lm(rprice ~ y81, KIELMC, subset = (nearinc == 1))
 summary(model3)
 (b3 <- coef(model3)["y81"])
 
