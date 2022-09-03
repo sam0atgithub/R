@@ -1,0 +1,145 @@
+---
+title: "New Cases Per Capita and Vaccination Ratios - by County Level"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    theme: spacelab
+---
+
+```{r setup, include=FALSE}
+#Import libraries
+library(flexdashboard)
+library(httr)
+library(tidyverse)
+library(jsonlite)
+library(stargazer)
+library(magrittr)
+library(lmtest)
+library(highcharter)
+```
+
+```{r}
+#Import data, and manipulate
+
+  
+main <- "https://api.covidactnow.org/v2/"
+state <- "counties.json?apiKey="
+key <- "88d523069840437f851b3738a9cb1021"
+
+api_covid <- paste0(main, state, key)
+
+raw_covid <- GET(api_covid)
+
+json_covid <- fromJSON(rawToChar(raw_covid$content), flatten = TRUE)
+
+df <- json_covid
+
+df <- df %>% select(state, 
+                    county, 
+                    fips, 
+                    population, 
+                    metrics.weeklyNewCasesPer100k, 
+                    metrics.vaccinationsCompletedRatio,
+                    metrics.vaccinationsAdditionalDoseRatio) %>% 
+  rename(thirddose = metrics.vaccinationsAdditionalDoseRatio,
+         seconddose = metrics.vaccinationsCompletedRatio,
+         newcases = metrics.weeklyNewCasesPer100k) %>% 
+  mutate(newcasedensity = newcases / population,
+         seconddose2 = seconddose^2,
+         thirddose2 = thirddose^2)
+
+```
+
+Figures and Regressions
+===================================================================
+
+Column {data-width = 450}
+-----------------------------------------------------------------------
+### Figure 1: Second-dose Completion Ratio and New Cases Per Capita
+```{r}
+
+ggplot(df, aes(seconddose, newcasedensity))+
+  geom_point(alpha = 1/5, color = "blue")+
+  ylim(0,0.05)+
+  geom_smooth(color = "red", se = F)
+```
+
+### Figure 2: Third-dose Completion Ratio and New Cases Per Capita
+
+```{r}
+
+ggplot(df, aes(thirddose, newcasedensity))+
+  geom_point(alpha = 1/5, color = "blue")+
+  ylim(0,0.05)+
+  geom_smooth(color = "red", se = F)
+```
+
+Column {data-width = 250}
+------------------------------------------------------------------------
+
+### About Figure 1
+
+Several Observations have newcasedensity > 0.05. They are not shown in the
+Figure 1 to improve informativity.
+
+The fitted smooth line is a U-shaped curve. Therefore we add a quadratic term
+of seconddose to detect whether the U-shaped relationship is significant. 
+
+
+
+### About Figure 2
+
+Similarly,
+
+Several Observations have newcasedensity > 0.05. They are not shown in the
+Figure 2 to improve informativity.
+
+The fitted smooth line is a U-shaped curve. Therefore we add a quadratic term
+of thirddose to detect whether the U-shaped relationship is significant. 
+
+
+
+
+Column {data-width = 450}
+-------------------------------------------------------------------------
+
+### Regression 1 - Second-dose Ratio
+```{r}
+
+twodoses <- lm(newcasedensity ~ seconddose2 + seconddose, df)
+summary(twodoses)
+```
+
+### Regression 2 - Third-dose Ratio
+```{r}
+
+threedoses <- lm(newcasedensity ~ thirddose2 + thirddose, df)
+summary(threedoses)
+```
+
+
+Explanation
+=================================================================
+
+Our regression models indicate that with the growing second dose vaccination
+completion ratio and third dose vaccination completion ratio, the new case density,
+which is (new cases) / (population), drops at the beginning, but rises up after
+reaching to a high level of the vaccination ratio (61.6% for second-dose, 34.3%
+for third-dose). All coefficients are significant at 1% level.
+
+Such a trend can be explained through population density ratio, policy changes,
+and weaker policy implementation. Since our regressions are at the county level,
+there are many counties with a low population density ratio. In these counties, 
+social distance can be naturally and more easily achieved in public area, thus 
+a lower new case density. Futhermore, counties with high vaccination ratios tend 
+to loose the covid safety restrctions, which leads a higher new case density.
+Similarly, residents in these counties also care relatively less if they strictly
+obligate the safety restrictions, and expose themselves to a higher infection risk.
+
+Thankfully, recent variations of coronavirus are not likely to cause severe symtoms
+and death, so a sligtly higher new case density won't be a serious problem.
+
+
+
+
